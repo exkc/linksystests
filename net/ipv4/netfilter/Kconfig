@@ -167,6 +167,11 @@ config NF_NAT_PPTP
 	default NF_CONNTRACK_PPTP
 	select NF_NAT_PROTO_GRE
 
+config NF_NAT_RTSP
+        tristate
+        depends on IP_NF_IPTABLES && NF_CONNTRACK && NF_NAT
+        default NF_NAT && NF_CONNTRACK_RTSP
+
 config NF_NAT_H323
 	tristate
 	depends on NF_CONNTRACK
