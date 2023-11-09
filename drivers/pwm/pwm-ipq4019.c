@@ -101,6 +101,9 @@ struct ipq4019_pwm_chip {
 	struct ipq_pwm_ops *ops;
 };
 
+int led_custom_set = 0;
+EXPORT_SYMBOL(led_custom_set);
+
 static ssize_t count;
 static uint32_t used_pwm[MAX_PWM_DEVICES];
 
@@ -252,7 +255,8 @@ static int ipq4019_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	close_pre_div = ipq4019_chip->ops->max_pre_div;
 	close_pwm_div = ipq4019_chip->ops->max_pwm_div;
 
-	ipq4019_pwm_disable(chip, pwm);
+	if(led_custom_set == 0)
+		ipq4019_pwm_disable(chip, pwm);
 
 	for (pre_div = 0; pre_div <= ipq4019_chip->ops->max_pre_div ; pre_div++) {
 		pwm_div = DIV_ROUND_CLOSEST_ULL((uint64_t)period_ns * 1000,

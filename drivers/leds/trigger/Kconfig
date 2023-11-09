@@ -19,6 +19,27 @@ config LEDS_TRIGGER_TIMER
 
 	  If unsure, say Y.
 
+config LEDS_TRIGGER_PULSE
+	tristate "LED pulse Trigger"
+	depends on LEDS_TRIGGERS
+	help
+	  This allows LEDs to be controlled by a programmable level
+	  via sysfs. Some LED hardware can be programmed to start
+	  blinking the LED without any further software interaction.
+	  For more details read Documentation/leds/leds-class.txt.
+
+	  If unsure, say Y.
+
+config LEDS_TRIGGER_CUSTOMPULSE
+	tristate "LED custom pulse Trigger"
+	depends on LEDS_TRIGGERS
+	help
+	  This allows LEDs to be controlled by a programmable level
+	  via sysfs. Some LED hardware can be programmed to start
+	  blinking the LED without any further software interaction.
+	  For more details read Documentation/leds/leds-class.txt.
+
+	  If unsure, say Y.
 config LEDS_TRIGGER_ONESHOT
 	tristate "LED One-shot Trigger"
 	depends on LEDS_TRIGGERS
