@@ -169,7 +169,7 @@ struct adv_info {
 	__u8	scan_rsp_data[HCI_MAX_AD_LENGTH];
 };
 
-#define HCI_MAX_ADV_INSTANCES		5
+#define HCI_MAX_ADV_INSTANCES		1 /*Modifications were made by Linksys on or before Mon Apr 27 16:49:00 PST 2020*/
 #define HCI_DEFAULT_ADV_DURATION	2
 
 #define HCI_MAX_SHORT_NAME_LENGTH	10
