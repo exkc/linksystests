@@ -1752,6 +1752,14 @@ static int prepare_bam_async_desc(struct qcom_nand_controller *nandc,
 	return 0;
 
 }
+//in order to avoid linux hang when write nand in panic stage
+bool in_panic_write = false;
+#define OS_DELAY(X) \
+{ \
+	    volatile u32 i,j,count=0; \
+	    for(i=0;i<1000;i++)  \
+	       for(j=0;j<X;j++) count++; \
+}
 
 /* helpers to submit/free our list of dma descriptors */
 static int submit_descs(struct qcom_nand_controller *nandc)
@@ -1810,6 +1818,12 @@ static int submit_descs(struct qcom_nand_controller *nandc)
 #endif
 		dma_async_issue_pending(nandc->cmd_chan);
 
+		//as it is in panic stage now, we must not sleep,just ping a while to wait dma is done,then return with timeout
+		if (in_panic_write) {
+			OS_DELAY(50000); //delay around 500ms in elise
+			printk("OS_DELAY \n");
+			return -ETIMEDOUT;
+		}
 		if (!wait_for_completion_timeout(&bam_txn->txn_done, QPIC_NAND_COMPLETION_TIMEOUT))
 			return -ETIMEDOUT;
 	} else {

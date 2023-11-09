@@ -2773,6 +2773,11 @@ static int panic_nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	ret = nand_do_write_ops(mtd, to, &ops);
 
 	*retlen = ops.retlen;
+	//in order to avoid linux hang when write nand in panic stage
+	{
+		extern bool in_panic_write;
+		in_panic_write = false;  
+	}
 	return ret;
 }
 

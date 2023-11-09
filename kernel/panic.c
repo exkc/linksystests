@@ -132,6 +132,11 @@ void panic(const char *fmt, ...)
 	 */
 	smp_send_stop();
 
+	//in order to avoid linux hang when write nand in panic stage
+	{
+		extern bool in_panic_write;
+		in_panic_write = true;
+	}
 	/*
 	 * Run any panic handlers, including those that might need to
 	 * add information to the kmsg dump output.
