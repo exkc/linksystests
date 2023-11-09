@@ -1,3 +1,4 @@
+/* Modifications were made by Linksys on or before Fri Apr  1 15:51:09 PDT 2016 */
 /* (C) 1999-2001 Paul `Rusty' Russell
  * (C) 2002-2004 Netfilter Core Team <coreteam@netfilter.org>
  * (C) 2006-2012 Patrick McHardy <kaber@trash.net>
@@ -27,7 +28,7 @@
 #include <net/netfilter/ipv6/nf_conntrack_ipv6.h>
 
 static unsigned int udp_timeouts[UDP_CT_MAX] = {
-	[UDP_CT_UNREPLIED]	= 30*HZ,
+	[UDP_CT_UNREPLIED]	= 61*HZ,
 	[UDP_CT_REPLIED]	= 180*HZ,
 };
 
