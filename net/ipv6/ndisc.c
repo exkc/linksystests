@@ -1,3 +1,4 @@
+/* Modifications were made by Linksys on or before Fri Dec  2 14:58:17 PST 2016 */
 /*
  *	Neighbour Discovery for IPv6
  *	Linux INET6 implementation
@@ -72,6 +73,7 @@
 
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv6.h>
+#include <linux/kmod.h>
 
 /* Set to 3 to get tracing... */
 #define ND_DEBUG 1
@@ -1079,6 +1081,13 @@ errout:
 	rtnl_set_sk_err(net, RTNLGRP_ND_USEROPT, err);
 }
 
+/* User mode helper parameters */
+static char *cmd_envp[3] = {"HOME=/", "PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL };
+static char tmp0[128];
+static char tmp1[16];
+static char tmp2[4];
+static char *cmd_argv[4] = {tmp0, tmp1, tmp2, NULL};
+
 static void ndisc_router_discovery(struct sk_buff *skb)
 {
 	struct ra_msg *ra_msg = (struct ra_msg *)skb_transport_header(skb);
@@ -1421,6 +1430,13 @@ skip_routeinfo:
 	if (ndopts.nd_opts_tgt_lladdr || ndopts.nd_opts_rh) {
 		ND_PRINTK(2, warn, "RA: invalid RA options\n");
 	}
+
+	// we call a script in user space to update the LAN mtu and dhcpv6 client mode
+	sprintf(tmp0, "%s", "/etc/init.d/ipv6_react_to_ra.sh");
+	sprintf(tmp1, "%s", in6_dev->dev->name);
+	sprintf(tmp2, "%s", (in6_dev->if_flags & IF_RA_MANAGED) ? "1" : "0");
+	call_usermodehelper(tmp0, cmd_argv, cmd_envp, UMH_NO_WAIT);
+
 out:
 	ip6_rt_put(rt);
 	if (neigh)
