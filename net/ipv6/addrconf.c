@@ -1,3 +1,4 @@
+/* Modifications were made by Linksys on or before Mon Dec  5 15:32:44 PST 2016 */
 /*
  *	IPv6 Address [auto]configuration
  *	Linux INET6 implementation
@@ -2422,6 +2423,13 @@ void addrconf_prefix_rcv(struct net_device *dev, u8 *opt, int len, bool sllao)
 					       RTF_ADDRCONF | RTF_PREFIX_RT,
 					       RTF_GATEWAY | RTF_DEFAULT);
 
+		/*
+		 * cshen@cisco.com
+		 *
+		 * If on-link route is in the routing cache, the following code
+		 *   fails to update timer, making route to expire and decimate.
+		 */
+#if 0
 		if (rt) {
 			/* Autoconf prefix route */
 			if (valid_lft == 0) {
@@ -2434,6 +2442,8 @@ void addrconf_prefix_rcv(struct net_device *dev, u8 *opt, int len, bool sllao)
 				rt6_clean_expires(rt);
 			}
 		} else if (valid_lft) {
+#endif                    
+		if (valid_lft) {
 			clock_t expires = 0;
 			int flags = RTF_ADDRCONF | RTF_PREFIX_RT;
 			if (addrconf_finite_timeout(rt_expires)) {
