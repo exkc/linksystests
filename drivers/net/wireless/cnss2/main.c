@@ -1415,6 +1415,7 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 	return 0;
 reset_ctx:
 	cnss_pr_err("Failed to get subsystem, err = %d\n", ret);
+	cnss_unregister_qca8074_cb(plat_priv);
 	plat_priv->driver_status = CNSS_UNINITIALIZED;
 	plat_priv->driver_ops = NULL;
 	return ret;
@@ -1595,9 +1596,8 @@ void cnss_subsystem_put(struct device *dev)
 		subsystem_put(subsys_info->subsys_handle);
 		subsys_info->subsystem_put_in_progress = false;
 		subsys_info->subsys_handle = NULL;
+		plat_priv->driver_state = 0;
 	}
-
-	plat_priv->driver_state = 0;
 }
 EXPORT_SYMBOL(cnss_subsystem_put);
 
