@@ -1,3 +1,4 @@
+/* Modifications were made by Linksys on or before Fri Dec  2 14:44:20 PST 2016 */
 /*
  *	IPv6 fragment reassembly
  *	Linux INET6 implementation
@@ -308,7 +309,7 @@ found:
 
 	/* Check for overlap with preceding fragment. */
 	if (prev &&
-	    (FRAG6_CB(prev)->offset + prev->len) > offset)
+	    (FRAG6_CB(prev)->offset + (int)prev->len) > offset)
 		goto discard_fq;
 
 	/* Look for overlap with succeeding segment. */
