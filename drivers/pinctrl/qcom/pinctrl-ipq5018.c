@@ -613,7 +613,7 @@ static const char * const qdss_tracectl_b_groups[] = {
 	"gpio40",
 };
 static const char * const pwm0_groups[] = {
-	"gpio42",
+	"gpio42", "gpio46",
 };
 static const char * const qdss_cti_trig_out_b0_groups[] = {
 	"gpio42",
@@ -625,7 +625,7 @@ static const char * const xfem4_groups[] = {
 	"gpio42",
 };
 static const char * const pwm1_groups[] = {
-	"gpio43",
+	"gpio43", "gpio1",
 };
 static const char * const qdss_cti_trig_in_b0_groups[] = {
 	"gpio43",
@@ -649,7 +649,7 @@ static const char * const xfem6_groups[] = {
 	"gpio44",
 };
 static const char * const pwm3_groups[] = {
-	"gpio45",
+	"gpio45", "gpio30",
 };
 static const char * const qdss_cti_trig_in_b1_groups[] = {
 	"gpio45",
@@ -804,7 +804,7 @@ static const struct msm_function ipq5018_functions[] = {
 static const struct msm_pingroup ipq5018_groups[] = {
 	PINGROUP(0, atest_char0, NA, qdss_cti_trig_out_a0, wci0, wci0, xfem0,
 		 NA, NA, NA),
-	PINGROUP(1, atest_char1, NA, qdss_cti_trig_in_a0, wci1, wci1, xfem1,
+	PINGROUP(1, atest_char1, pwm1, qdss_cti_trig_in_a0, wci1, wci1, xfem1,
 		 NA, NA, NA),
 	PINGROUP(2, atest_char2, NA, qdss_cti_trig_out_a1, wci2, wci2, xfem2,
 		 NA, NA, NA),
@@ -860,7 +860,7 @@ static const struct msm_pingroup ipq5018_groups[] = {
 		 qdss_tracedata_b, NA, NA, NA, NA),
 	PINGROUP(29, audio_txfsync, NA, blsp0_uart1, NA, qdss_tracedata_b, NA,
 		 NA, NA, NA),
-	PINGROUP(30, audio_txd, led2, led0, NA, NA, NA, NA,
+	PINGROUP(30, audio_txd, led2, led0, pwm3, NA, NA, NA,
 		 NA, NA),
 	PINGROUP(31, blsp2_spi0, blsp1_uart1, NA, qdss_tracedata_b, eud_gpio,
 		 NA, NA, NA, NA),
@@ -886,7 +886,7 @@ static const struct msm_pingroup ipq5018_groups[] = {
 		 NA),
 	PINGROUP(45, pwm3, qdss_cti_trig_in_b1, wci7, wci7, xfem7, NA, NA, NA,
 		 NA),
-	PINGROUP(46, led0, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(46, led0, pwm0, NA, NA, NA, NA, NA, NA, NA),
 };
 
 static const struct msm_pinctrl_soc_data ipq5018_pinctrl = {

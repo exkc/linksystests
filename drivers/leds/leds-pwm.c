@@ -24,10 +24,14 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 
+struct led_pwm_priv;
+extern int led_custom_set;
+
 struct led_pwm_data {
 	struct led_classdev	cdev;
 	struct pwm_device	*pwm;
 	struct work_struct	work;
+	struct led_pwm_priv *priv;
 	unsigned int		active_low;
 	unsigned int		period;
 	int			duty;
@@ -36,6 +40,7 @@ struct led_pwm_data {
 
 struct led_pwm_priv {
 	int num_leds;
+	enum led_brightness brightness;
 	struct led_pwm_data leds[0];
 };
 
@@ -102,6 +107,7 @@ static int led_pwm_add(struct device *dev, struct led_pwm_priv *priv,
 	struct led_pwm_data *led_data = &priv->leds[priv->num_leds];
 	int ret;
 
+	led_data->priv = priv;
 	led_data->active_low = led->active_low;
 	led_data->cdev.name = led->name;
 	led_data->cdev.default_trigger = led->default_trigger;
@@ -168,12 +174,182 @@ static int led_pwm_create_of(struct device *dev, struct led_pwm_priv *priv)
 	return ret;
 }
 
+#define RED	0
+#define GREEN	1
+#define BLUE	2
+
+
+static void rgb_bright_set(struct led_classdev *led_cdev, enum led_brightness value)
+{
+	struct led_pwm_data *led_data = container_of(led_cdev, struct led_pwm_data, cdev);
+	struct led_pwm_priv *priv = led_data->priv;
+	enum led_brightness red, green, blue;
+	
+	priv->brightness = value;
+
+	blue = 0x0000ff & value;
+	green = (0x00ff00 & value) >> 8;
+	red = (0xff0000 & value) >> 16;
+
+	priv->leds[RED].cdev.brightness_set(&priv->leds[RED].cdev, red);
+	priv->leds[GREEN].cdev.brightness_set(&priv->leds[GREEN].cdev, green);
+	priv->leds[BLUE].cdev.brightness_set(&priv->leds[BLUE].cdev, blue);
+
+	return;
+}
+
+static void purple_bright_set(struct led_classdev *led_cdev, enum led_brightness value)
+{
+	enum led_brightness rgb;
+
+	rgb = value << 16 | LED_OFF << 8 | value; 
+	rgb_bright_set(led_cdev, rgb); 
+	return;
+}
+
+static void white_bright_set(struct led_classdev *led_cdev, enum led_brightness value)
+{
+	enum led_brightness rgb;
+
+	rgb = value << 16 | value << 8 | value; 
+	rgb_bright_set(led_cdev, rgb); 
+	return;
+}
+
+static void cyan_bright_set(struct led_classdev *led_cdev, enum led_brightness value)
+{
+	enum led_brightness rgb;
+
+	rgb = LED_OFF << 16 | value << 8 | value; 
+	rgb_bright_set(led_cdev, rgb); 
+	return;
+}
+
+static void yellow_bright_set(struct led_classdev *led_cdev, enum led_brightness value)
+{
+	enum led_brightness rgb;
+
+	rgb = value << 16 | value << 8 | LED_OFF; 
+	rgb_bright_set(led_cdev, rgb); 
+	return;
+}
+
+static enum led_brightness rgb_bright_get(struct led_classdev *led_cdev)
+{
+	struct led_pwm_data *led_data = container_of(led_cdev, struct led_pwm_data, cdev);
+	struct led_pwm_priv *priv = led_data->priv;
+
+	return priv->brightness;
+}	
+
+static void led_dummy_work(struct work_struct *work)
+{
+	printk(KERN_EMERG "dummy_work called\n");
+	return;
+}
+
+void rgb_custom_set(struct led_classdev *led_cdev, int value)
+{
+	if (value == 0)
+		dev_info(led_cdev->dev, "RGB custom stop\n");
+	else 
+		dev_info(led_cdev->dev, "RGB custom start\n");
+
+	led_custom_set = value ?1 :0;
+	return;
+}
+EXPORT_SYMBOL_GPL(rgb_custom_set);
+
+struct fake_led {
+	char *name;
+	char *default_trigger;
+	enum led_brightness max_brightness; 
+	
+	void (*leds_work)(struct work_struct *work);
+	void (*bright_set)(struct led_classdev *led_cdev, enum led_brightness value);
+	enum led_brightness (*bright_get)(struct led_classdev *led_cdev);
+} fake_leds[] = {
+	{
+		.name = "pwm:purple",
+		.default_trigger = "none",
+		.leds_work = led_dummy_work,
+		.bright_set = purple_bright_set,
+	},
+	{
+		.name = "pwm:white",
+		.default_trigger = "none",
+		.leds_work = led_dummy_work,
+		.bright_set = white_bright_set,
+	},
+	{
+		.name = "pwm:cyan",
+		.default_trigger = "none",
+		.leds_work = NULL,
+		.bright_set = cyan_bright_set,
+	},
+	{
+		.name = "pwm:yellow",
+		.default_trigger = "none",
+		.leds_work = led_dummy_work,
+		.bright_set = yellow_bright_set,
+	}, 
+	{
+		.name = "pwm:rgb",
+		.default_trigger = "none",
+		.leds_work = led_dummy_work,
+		.bright_set = rgb_bright_set,
+		.bright_get = rgb_bright_get,
+		.max_brightness = 0xFFFFFF,
+	},
+};
+
+static int probe_fake_leds(struct device *dev, struct led_pwm_priv *priv)
+{
+	int i, ret;
+	int fake_leds_num = sizeof(fake_leds)/sizeof(struct fake_led);
+	
+	for (i = 0; i < fake_leds_num; i++) {
+		priv->leds[priv->num_leds+i].priv = priv;
+		priv->leds[priv->num_leds+i].cdev.name =fake_leds[i].name;
+		priv->leds[priv->num_leds+i].cdev.default_trigger = fake_leds[i].default_trigger;	
+		priv->leds[priv->num_leds+i].cdev.brightness_set = fake_leds[i].bright_set;
+
+		if (fake_leds[i].bright_get)
+			priv->leds[priv->num_leds+i].cdev.brightness_get = fake_leds[i].bright_get;
+
+		if (fake_leds[i].max_brightness)
+			priv->leds[priv->num_leds+i].cdev.max_brightness = fake_leds[i].max_brightness;
+
+		//if (fake_leds[i].max_brightness)
+		//	priv->leds[priv->num_leds+i].cdev.max_brightness = fake_leds[i].max_brightness;
+	printk(KERN_EMERG "register  %s\n", priv->leds[priv->num_leds+i].cdev.name);
+
+		ret = led_classdev_register(dev, &priv->leds[priv->num_leds+i].cdev);
+		if (ret != 0) {
+			dev_err(dev, "failed to register PWM led for %s: %d\n",
+				priv->leds[priv->num_leds+i].cdev.name, ret);
+				goto exit;
+		}
+	}
+
+	priv->num_leds +=  fake_leds_num;
+	return 0;
+	
+exit:
+	while (i--) {
+		led_classdev_unregister(&priv->leds[priv->num_leds+i].cdev);
+	}
+
+	return ret;
+}
+
 static int led_pwm_probe(struct platform_device *pdev)
 {
 	struct led_pwm_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct led_pwm_priv *priv;
 	int count, i;
 	int ret = 0;
+	int fake_leds_num = sizeof(fake_leds)/sizeof(struct fake_led);
 
 	if (pdata)
 		count = pdata->num_leds;
@@ -183,7 +359,7 @@ static int led_pwm_probe(struct platform_device *pdev)
 	if (!count)
 		return -EINVAL;
 
-	priv = devm_kzalloc(&pdev->dev, sizeof_pwm_leds_priv(count),
+	priv = devm_kzalloc(&pdev->dev, sizeof_pwm_leds_priv(count + fake_leds_num),
 			    GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
@@ -203,6 +379,9 @@ static int led_pwm_probe(struct platform_device *pdev)
 		led_pwm_cleanup(priv);
 		return ret;
 	}
+
+	probe_fake_leds(&pdev->dev, priv);
+	printk(KERN_EMERG "register  %d leds\n", count + fake_leds_num);
 
 	platform_set_drvdata(pdev, priv);
 
