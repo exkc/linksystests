@@ -41,6 +41,12 @@
  *					datagrams.
  *		Hirokazu Takahashi:	sendfile() on UDP works now.
  */
+/*
+ * Modification is to bypass ipv4 fragmentation if the output interface is the dslite interface.
+ * This is done to allow dslite to fragment ipv6 packets.
+ */
+/* modified by Cisco Systems, Inc. on 09/28/2012 */
+
 
 #include <asm/uaccess.h>
 #include <linux/module.h>
@@ -282,7 +288,8 @@ static int ip_finish_output(struct net *net, struct sock *sk, struct sk_buff *sk
 	if (skb_is_gso(skb))
 		return ip_finish_output_gso(net, sk, skb, mtu);
 
-	if (skb->len > mtu || (IPCB(skb)->flags & IPSKB_FRAG_PMTU))
+	if ((skb->len > mtu || (IPCB(skb)->flags & IPSKB_FRAG_PMTU)) &&
+			likely(strcmp(skb->dev->name, "dslite")))
 		return ip_fragment(net, sk, skb, mtu, ip_finish_output2);
 
 	return ip_finish_output2(net, sk, skb);

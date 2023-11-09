@@ -19,6 +19,11 @@
  *	Changes:
  * Steven Barth <cyrus@openwrt.org>:		MAP-E FMR support
  */
+/* modified by Cisco Systems, Inc. on 09/28/2012
+ * Modification is to bypass ipv4 fragmentation if the output interface is the dslite interface.
+ * This is done to allow dslite to fragment ipv6 packets.
+ */
+
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -1304,13 +1309,19 @@ static int ip6_tnl_xmit2(struct sk_buff *skb,
 		mtu = IPV6_MIN_MTU;
 	if (skb_dst(skb))
 		skb_dst(skb)->ops->update_pmtu(skb_dst(skb), NULL, skb, mtu);
-	if (skb->len > mtu) {
-		*pmtu = mtu;
-		err = -EMSGSIZE;
-		goto tx_err_dst_release;
-	}
 
 	skb_scrub_packet(skb, !net_eq(t->net, dev_net(dev)));
+
+	if (skb->len > mtu) {
+		/*
+		 *  Cisco Systems Inc. 08/28/2012 This code is only used for dslite tunnel so we change behavior to
+		 *  mark the sk_buff as fragmentable and continue
+		 */
+		skb->ignore_df = 1;
+		/* *pmtu = mtu; */
+		/* err = -EMSGSIZE; */
+		/* goto tx_err_dst_release; */
+	}
 
 	/*
 	 * Okay, now see if we can stuff it in the buffer as-is.
