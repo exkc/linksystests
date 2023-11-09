@@ -16,6 +16,8 @@
  * 02110-1301, USA
  */
 
+/* modified by Cisco Systems, Inc. on 11/30/2012 */
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/types.h>
@@ -77,7 +79,16 @@ int iptunnel_xmit(struct sock *sk, struct rtable *rt, struct sk_buff *skb,
 
 	iph->version	=	4;
 	iph->ihl	=	sizeof(struct iphdr) >> 2;
-	iph->frag_off	=	df;
+	/*
+	 *  cshen@cisco.com:
+	 *
+	 *  Reference: RFC 3056
+	 *  Section 4. Maximum Transmission Unit
+	 *
+	 *  The IPv4 "do not fragment" bit SHOULD NOT be set in the encapsulating
+	 *  IPv4 header.
+	 */
+	iph->frag_off	=	(proto == IPPROTO_IPV6) ? 0 : df;
 	iph->protocol	=	proto;
 	iph->tos	=	tos;
 	iph->daddr	=	dst;
