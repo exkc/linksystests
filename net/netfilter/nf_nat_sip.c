@@ -102,17 +102,21 @@ static int map_addr(struct sk_buff *skb, unsigned int protoff,
 	union nf_inet_addr newaddr;
 	__be16 newport;
 
-	if (nf_inet_addr_cmp(&ct->tuplehash[dir].tuple.src.u3, addr) &&
-	    ct->tuplehash[dir].tuple.src.u.udp.port == port) {
-		newaddr = ct->tuplehash[!dir].tuple.dst.u3;
-		newport = ct->tuplehash[!dir].tuple.dst.u.udp.port;
-	} else if (nf_inet_addr_cmp(&ct->tuplehash[dir].tuple.dst.u3, addr) &&
-		   ct->tuplehash[dir].tuple.dst.u.udp.port == port) {
-		newaddr = ct->tuplehash[!dir].tuple.src.u3;
-		newport = ct_sip_info->forced_dport ? :
-			  ct->tuplehash[!dir].tuple.src.u.udp.port;
-	} else
-		return 1;
+	if (ct->tuplehash[dir].tuple.src.u3.ip == addr->ip) {
+    	newaddr = ct->tuplehash[!dir].tuple.dst.u3;
+        if(ct->tuplehash[dir].tuple.src.u.udp.port == port)
+           newport = ct->tuplehash[!dir].tuple.dst.u.udp.port;
+        else
+           newport = ct->tuplehash[dir].tuple.src.u.udp.port;
+    } else if (ct->tuplehash[dir].tuple.dst.u3.ip == addr->ip ) {
+        newaddr = ct->tuplehash[!dir].tuple.src.u3;
+        if(ct->tuplehash[dir].tuple.dst.u.udp.port == port)
+		     newport = ct_sip_info->forced_dport ? :
+			 ct->tuplehash[!dir].tuple.src.u.udp.port;
+        else
+            newport = ct->tuplehash[dir].tuple.dst.u.udp.port;
+    } else
+        return 1;
 
 	if (nf_inet_addr_cmp(&newaddr, addr) && newport == port)
 		return 1;
@@ -184,13 +188,11 @@ static unsigned int nf_nat_sip(struct sk_buff *skb, unsigned int protoff,
 		 * connection */
 		if (request) {
 			if (!nf_inet_addr_cmp(&addr,
-					&ct->tuplehash[dir].tuple.src.u3) ||
-			    port != ct->tuplehash[dir].tuple.src.u.udp.port)
+					&ct->tuplehash[dir].tuple.src.u3))
 				goto next;
 		} else {
 			if (!nf_inet_addr_cmp(&addr,
-					&ct->tuplehash[dir].tuple.dst.u3) ||
-			    port != ct->tuplehash[dir].tuple.dst.u.udp.port)
+					&ct->tuplehash[dir].tuple.dst.u3))
 				goto next;
 		}
 
@@ -549,6 +551,7 @@ static unsigned int nf_nat_sdp_media(struct sk_buff *skb, unsigned int protoff,
 	struct nf_conn *ct = nf_ct_get(skb, &ctinfo);
 	enum ip_conntrack_dir dir = CTINFO2DIR(ctinfo);
 	u_int16_t port;
+    int portloop = 0;
 
 	/* Connection will come from reply */
 	if (nf_inet_addr_cmp(&ct->tuplehash[dir].tuple.src.u3,
@@ -571,8 +574,13 @@ static unsigned int nf_nat_sdp_media(struct sk_buff *skb, unsigned int protoff,
 
 	/* Try to get same pair of ports: if not, try to change them. */
 	for (port = ntohs(rtp_exp->tuple.dst.u.udp.port);
-	     port != 0; port += 2) {
+	     port != 0 || 0 == portloop; port += 2) {
 		int ret;
+        /* support edge case port 65534/65535 */
+        if(0 == port) {
+            portloop = 1;
+            port += 2;
+        }
 
 		rtp_exp->tuple.dst.u.udp.port = htons(port);
 		ret = nf_ct_expect_related(rtp_exp);
