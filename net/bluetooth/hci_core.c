@@ -2615,10 +2615,11 @@ static void hci_cmd_timeout(struct work_struct *work)
 {
 	struct hci_dev *hdev = container_of(work, struct hci_dev,
 					    cmd_timer.work);
+	u16 opcode = 0;
 
 	if (hdev->sent_cmd) {
 		struct hci_command_hdr *sent = (void *) hdev->sent_cmd->data;
-		u16 opcode = __le16_to_cpu(sent->opcode);
+		opcode = __le16_to_cpu(sent->opcode);
 
 		BT_ERR("%s command 0x%4.4x tx timeout", hdev->name, opcode);
 	} else {
@@ -2627,6 +2628,9 @@ static void hci_cmd_timeout(struct work_struct *work)
 
 	atomic_set(&hdev->cmd_cnt, 1);
 	queue_work(hdev->workqueue, &hdev->cmd_work);
+	if ((hdev->sent_cmd) && (opcode == HCI_OP_LE_SET_SCAN_ENABLE)) {
+		queue_work(hdev->req_workqueue, &hdev->error_reset);
+	}
 }
 
 struct oob_data *hci_find_remote_oob_data(struct hci_dev *hdev,
