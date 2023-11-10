@@ -523,7 +523,6 @@ __v7_setup_stack:
 	.align
 
 	.section ".proc.info.init", #alloc
-
 	/*
 	 * Standard v7 proc info content
 	 */
